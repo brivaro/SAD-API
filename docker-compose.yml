@@ -1,0 +1,28 @@
+services:
+  web:
+    build: .  # Imagen para construir el servicio está en el Dockerfile de este directorio
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://user:pass@db:5432/mydatabase
+    depends_on:
+      db:
+        condition: service_healthy  # Esperar a que PostgreSQL esté listo
+
+  db:
+    image: postgres:latest  # O la versión específica que desees
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: mydatabase  # Nombre de la base de datos inicial
+    volumes:
+      - db-data:/var/lib/postgresql/data  # Montar el volumen
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user"]  # Verifica si la base de datos está lista
+      interval: 10s  # Intervalo de chequeo
+      timeout: 5s   # Tiempo máximo de espera
+      retries: 3    # Número de intentos antes de marcar como no saludable
+
+volumes:
+  db-data:  # Define el volumen aquí
+
