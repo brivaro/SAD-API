@@ -14,11 +14,15 @@ import (
 
 var db *sql.DB
 
+////////////////////////////////////
+//////////////////////////////////// INICIAR LA BD
+////////////////////////////////////
 func initDB() {
     // Cadena de conexión
     // Esto es una práctica insegura, poner el user y pass en el código
     // Se podrí­a hacer con variables de entorno, os.Getenv
-    connStr := "user=user dbname=mydatabase password=pass host=db sslmode=disable"
+    host := os.Getenv("POSTGRES_HOST")
+    connStr := "host=" + host + " dbname=mydatabase password=pass sslmode=disable"
 
     // Abre la conexión
     tempdb, err := sql.Open("postgres", connStr)
@@ -47,6 +51,9 @@ func initDB() {
     }
 }
 
+////////////////////////////////////
+//////////////////////////////////// ESTRUCTURA TAREAS
+////////////////////////////////////
 // Definimos una estructura 'toDo' que representará una tarea en nuestra lista
 type toDo struct {
     ID        int    `json:"id"`        // ID de la tarea, entero
@@ -60,6 +67,10 @@ var toDos = []toDo{
     {ID: 2, Task: "Build a REST API", Completed: false},    // Tarea 2
 }
 
+
+////////////////////////////////////
+//////////////////////////////////// FUNCION MAIN
+////////////////////////////////////
 func main() {
     ////////////////////////////////////
     // Inicializamos la base de datos
@@ -88,6 +99,9 @@ func main() {
         log.Println("BD exists. Tasks already exist in the database, skipping initialization.")
     }
 
+
+    ////////////////////////////////////
+    //////////////////////////////////// ROUTER
     ////////////////////////////////////
     // Preparar log file and router
     // Configurar el logger para registrar en un archivo
@@ -106,8 +120,12 @@ func main() {
     // Creamos un nuevo router de Gin, que serÃ¡ el manejador de las rutas y peticiones HTTP
     router := gin.Default()
 
-    //////////////////////////////////// GET
 
+    ////////////////////////////////////
+    //////////////////////////////////// METODOS DEL ROUTER
+    ////////////////////////////////////
+
+    //////////////////////////////////// GET
     // Definimos la ruta para obtener todas las tareas ('GET' en '/toDos')
     router.GET("/toDos", func(c *gin.Context) {
         log.Println("Received request to get all tasks")
@@ -135,8 +153,62 @@ func main() {
         c.IndentedJSON(http.StatusOK, toDos)
     })
 
-    //////////////////////////////////// POST
+    ////////////////////////////////////// GET por ID
+    // Definimos la ruta para obtener una tarea por ID ('GET' en '/toDos/:id')
+    router.GET("/toDos/:id", func(c *gin.Context) {
+        id := c.Param("id")
+        log.Println("Received request to get task with ID:", id)
 
+        // Convertimos el ID de string a int
+        intID, err := strconv.Atoi(id)
+        if err != nil {
+            log.Println("Error converting ID to int:", err)
+            c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid ID"})
+            return
+        }
+
+        var todo toDo
+        err = db.QueryRow("SELECT id, task, completed FROM todos WHERE id = $1", intID).Scan(&todo.ID, &todo.Task, &todo.Completed)
+        if err != nil {
+            log.Println("Error retrieving task with ID:", intID, err)
+            if err == sql.ErrNoRows {
+                c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Task not found"})
+            } else {
+                c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving task"})
+            }
+            return
+        }
+
+        c.IndentedJSON(http.StatusOK, todo)
+    })
+
+    ////////////////////////////////////// GET para marcar como completada
+    // Definimos la ruta para marcar una tarea como completada ('GET' en '/complete/:id')
+    router.GET("/complete/:id", func(c *gin.Context) {
+        id := c.Param("id")
+        log.Println("Received request to complete task with ID:", id)
+
+        // Convertimos el ID de string a int
+        intID, err := strconv.Atoi(id)
+        if err != nil {
+            log.Println("Error converting ID to int:", err)
+            c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid ID"})
+            return
+        }
+
+        // Actualizamos el estado de la tarea a completada
+        _, err = db.Exec("UPDATE todos SET completed = TRUE WHERE id = $1", intID)
+        if err != nil {
+            log.Println("Error marking task as completed:", err)
+            c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Error completing task"})
+            return
+        }
+
+        log.Printf("Task with ID: %d marked as completed\n", intID)
+        c.IndentedJSON(http.StatusOK, gin.H{"message": "Task marked as completed"})
+    })
+
+    //////////////////////////////////// POST
     // Definimos la ruta para añadir una nueva tarea ('POST' en '/toDos')
     router.POST("/toDos", func(c *gin.Context) {
         var newToDo toDo // Creamos una variable para almacenar la nueva tarea
@@ -178,7 +250,6 @@ func main() {
     })
 
     //////////////////////////////////// PUT
-
     // Definimos la ruta para actualizar una tarea existente ('PUT' en '/toDos/:id')
     router.PUT("/toDos/:id", func(c *gin.Context) {
         var updatedToDo toDo       // Creamos una variable para almacenar la tarea actualizada
@@ -224,7 +295,6 @@ func main() {
     })
 
     //////////////////////////////////// DELETE
-
     // Definimos la ruta para eliminar una tarea ('DELETE' en '/toDos/:id')
     router.DELETE("/toDos/:id", func(c *gin.Context) {
         id := c.Param("id")  // Obtenemos el parÃ¡metro 'id' de la URL

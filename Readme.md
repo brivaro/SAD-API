@@ -1,44 +1,35 @@
+# To-Do Application with Go and Docker 📝🚀
 ---
-# To-Do Application with Go and Docker
-
-## Descripción
+## 🌟 Descripción
 
 Esta es una aplicación web de lista de tareas (To-Do) desarrollada en **Go** utilizando el framework **Gin**. La aplicación permite crear, actualizar, eliminar y listar tareas. Está diseñada para ser ejecutada en contenedores Docker, con orquestación mediante **Docker Compose** y una base de datos PostgreSQL.
 
 ### Funcionalidades CRUD:
-1. Obtener (leer) todas las tareas.
-2. Crear una nueva tarea.
-3. Actualizar una tarea existente.
-4. Eliminar una tarea.
+1. Obtener todas las tareas o una tarea en concreto. 📋
+2. Crear una nueva tarea. ➕
+3. Actualizar una tarea existente. ✏️
+4. Eliminar una tarea. ❌
+5. Buscar una tarea por ID. 🔍
+6. Marcar una tarea como completada. ✅
 
-## Requisitos
+## ⚙️ Requisitos 
 
 Para ejecutar esta aplicación, necesitarás tener instalados los siguientes componentes en tu máquina:
 
-- **Docker**: Para ejecutar contenedores.
-- **Docker Compose**: Para orquestar múltiples servicios (como la aplicación web y la base de datos).
+- **Docker**: Tecnología para automatizar la implementación de aplicaciones en contenedores. 🐳
 
-## Estructura del Proyecto
+## 📂 Estructura del Proyecto 
 
 - **`main.go`**: Contiene el código fuente de la aplicación Go.
 - **`Dockerfile`**: Archivo para construir la imagen Docker de la aplicación Go.
 - **`docker-compose.yml`**: Orquestación de servicios para levantar la aplicación y la base de datos PostgreSQL.
-- **`app.log`**: Archivo de logs generado automáticamente cuando se ejecuta la aplicación (guarda todas las actividades importantes con marca de tiempo).
-  
-## Instalación
+- **`app.log`**: Archivo de logs generado automáticamente cuando se ejecuta la aplicación (guarda todas las actividades importantes con marca de tiempo dentro del contenedor de la aplicación).
 
-### Paso 1: Clonar el repositorio
+## 🛠️ Instalación 
 
-Clona este repositorio en tu máquina local:
+### 📦 Paso 1: Construcción y ejecución de la aplicación con Docker Compose
 
-```bash
-git clone <URL_DEL_REPOSITORIO>
-cd <NOMBRE_DEL_REPOSITORIO>
-```
-
-### Paso 2: Construcción y ejecución de la aplicación con Docker Compose
-
-Para iniciar la aplicación y la base de datos usando Docker Compose, simplemente ejecuta:
+Para iniciar la aplicación y la base de datos usando Docker Compose, posicíonate en el directorio raíz y simplemente ejecuta:
 
 ```bash
 docker compose up --build
@@ -48,12 +39,12 @@ Este comando hace lo siguiente:
 
 1. **Construye** la imagen Docker de la aplicación Go a partir del `Dockerfile`.
 2. **Levanta** los servicios definidos en el archivo `docker-compose.yml`:
-   - **web**: El servicio de la aplicación de tareas.
-   - **db**: Un contenedor PostgreSQL para almacenar las tareas.
+   - **web**: El servicio de la aplicación de tareas. Espera con un `service_healthy` a que la base de datos esté lista y preparada para recibir solicitudes. 🖥️
+   - **db**: Un contenedor PostgreSQL para almacenar las tareas. 
    
-Una vez que Docker Compose haya levantado los contenedores, la aplicación estará disponible en `http://localhost:8080`.
+Una vez que Docker Compose haya levantado los contenedores, la aplicación estará disponible en `http://localhost:8080` para comenzar a gestionar tus tareas, o como llamamos nosotros, **toDos**.
 
-### Paso 3: Verificar la aplicación
+### 🔍 Paso 2: Verificar la aplicación 
 
 Puedes acceder a la aplicación en tu navegador o utilizar herramientas como **curl** o **Postman** para interactuar con la API.
 
@@ -81,23 +72,38 @@ Puedes acceder a la aplicación en tu navegador o utilizar herramientas como **c
   curl -X DELETE http://localhost:8080/toDos/3
   ```
 
-## Detalles del Código
+- **Buscar una tarea por ID (GET /toDos/:id)**
+
+  ```bash
+  curl -X GET http://localhost:8080/toDos/3
+  ```
+
+- **Marcar una tarea como completada (GET /complete/:id)**
+
+  ```bash
+  curl -X GET http://localhost:8080/complete/3
+  ```
+
+## 🖥️ Detalles del Código 
 
 ### `main.go`
 
 Este archivo contiene la implementación principal de la aplicación. Se utilizan los siguientes componentes:
 
 - **Gin**: Un framework para crear APIs REST de forma sencilla.
-- **Log**: Se configura un logger que guarda todas las peticiones y acciones en un archivo llamado `app.log`. Al inicio de cada sesión, se registra la fecha y hora para poder distinguir entre sesiones de ejecución.
+- **Log**: Se configura un logger que guarda todas las peticiones y acciones en un archivo llamado `app.log`. Al inicio de cada sesión, se registra la fecha y hora para poder distinguir entre sesiones de ejecución. ⏰
+- **PQ**: Se configura para manipular la base de datos.
 
 Las rutas principales incluyen:
 
-1. **GET `/toDos`**: Obtiene todas las tareas.
-2. **POST `/toDos`**: Crea una nueva tarea.
-3. **PUT `/toDos/:id`**: Actualiza una tarea existente.
-4. **DELETE `/toDos/:id`**: Elimina una tarea específica.
+1. **GET `/toDos`**: Obtiene todas las tareas. 📋
+2. **POST `/toDos` {TAREA}**: Crea una nueva tarea. ➕
+3. **PUT `/toDos/:id` {TAREA}**: Actualiza una tarea existente. ✏️
+4. **DELETE `/toDos/:id`**: Elimina una tarea específica. ❌
+5. **GET `/toDos/:id`**: Busca una tarea por ID. 🔍
+6. **GET `/complete/:id`**: Marca una tarea como completada. ✅
 
-### Dockerfile
+### 🐳 Dockerfile 
 
 El `Dockerfile` sigue una estrategia de **multi-stage build** para optimizar el tamaño de la imagen final. Los pasos son los siguientes:
 
@@ -121,59 +127,59 @@ EXPOSE 8080
 CMD ["./main"]
 ```
 
-### Docker Compose
+### ⚙️ Docker Compose 
 
 El archivo `docker-compose.yml` configura dos servicios:
 
 1. **web**: La aplicación Go.
 2. **db**: Un contenedor PostgreSQL para almacenar los datos.
 
+Hemos añadido una condición en el servicio web para que se espere a que la base de datos esté totalmente conectada y operativa en su contenedor.
+
 ```yaml
 services:
   web:
-    build: .
-    ports:
-      - "8080:8080"
+    build: .  # Imagen para construir el servicio está en el Dockerfile de este directorio
+    ...
     depends_on:
-      - db
+      db:
+        condition: service_healthy  # Esperar a que PostgreSQL esté listo
 
   db:
-    image: postgres
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASS: pass
-      POSTGRES_DB_NAME: mydatabase
-    volumes:
-      - db-data:/var/lib/postgresql/data
+    image: postgres:latest  # O la versión específica que desees
+    ...
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user"]  # Verifica si la base de datos está lista
+      interval: 10s  # Intervalo de chequeo
+      timeout: 5s   # Tiempo máximo de espera
+      retries: 3    # Número de intentos antes de marcar como no saludable
 
 volumes:
-  db-data:
+  db-data:  # Define el volumen aquí
 ```
 
-### Volúmenes
+### 💾 Volúmenes 
 
 El servicio de base de datos utiliza un volumen para persistir los datos incluso si el contenedor de la base de datos se detiene o se elimina.
 
-## Logging
+### 📜 Logging 
 
-La aplicación crea un archivo de logs (`app.log`) en el directorio principal de la aplicación. Cada vez que se inicia la aplicación, se registra la fecha y hora de inicio de la sesión.
-
-## Container Seminario1-web-1 (servicio web) y Seminario1-db-1 (servicio db)
-Si abrimos bash en el contenedor donde estamos ejecutando nuestra aplicación GO, podremos observar mediante el comando ```ls``` que solamente tenemos el binario de nuestra app (main) y el archivo de logs (app.log).
+La aplicación crea un archivo de logs (`app.log`) en el directorio principal de la aplicación. Cada vez que se inicia la aplicación, se registra la fecha y hora de inicio de la sesión. Si abrimos bash en el contenedor donde estamos ejecutando nuestra aplicación GO, podremos observar mediante el comando ```ls``` que solamente tenemos el binario de nuestra app (main) y el archivo de logs (app.log).
 
 ```bash
 docker exec -it <id_contenedor> /bin/sh
 ```
 
-## Cierre de la Aplicación
+### 🔚 Cierre de la Aplicación 
 
-Para detener los servicios de los contenedores, ejecuta:
+Para detener los servicios de los contenedores **Container Seminario1-web-1** (servicio web) y **Seminario1-db-1** (servicio db), ejecuta:
 
 ```bash
 docker compose stop
 ```
 
 Para volver a crear/iniciar los servicios de los contenedores, ejecuta:
+
 ```bash
 docker compose up
 ```
@@ -188,6 +194,6 @@ Para detener la aplicación y eliminar los contenedores, ejecuta:
 docker compose down
 ```
 
-Esto detendrá y eliminará todos los contenedores creados por Docker Compose, pero los datos de la base de datos permanecerán debido al uso del volumen persistente.
+Esto detendrá y eliminará todos los contenedores creados por Docker Compose, pero los datos de la base de datos permanecerán debido al uso del volumen persistente. 🛑
 
 ---
