@@ -5,9 +5,9 @@ services:
       - "8080:8080"
     environment:
       POSTGRES_HOST: db
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
-      POSTGRES_DB: mydatabase
+      POSTGRES_USER: "user"
+      POSTGRES_PASSWORD: "pass"
+      POSTGRES_DB: "mydatabase"
     depends_on:
       db:
         condition: service_healthy  # Esperar a que PostgreSQL esté listo
@@ -15,13 +15,13 @@ services:
   db:
     image: postgres:latest  # O la versión específica que desees
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
-      POSTGRES_DB: mydatabase  # Nombre de la base de datos inicial
+      POSTGRES_USER: "user"
+      POSTGRES_PASSWORD: "pass"
+      POSTGRES_DB: "mydatabase"  # Nombre de la base de datos inicial
     volumes:
       - db-data:/var/lib/postgresql/data  # Montar el volumen
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user"]  # Verifica si la base de datos está lista
+      test: ["CMD-SHELL", "pg_isready -U user -d mydatabase"]  # Verifica si la base de datos 'mydatabase' está lista
       interval: 10s  # Intervalo de chequeo
       timeout: 5s   # Tiempo máximo de espera
       retries: 3    # Número de intentos antes de marcar como no saludable

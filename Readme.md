@@ -149,7 +149,7 @@ services:
     image: postgres:latest  # O la versión específica que desees
     ...
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user"]  # Verifica si la base de datos está lista
+      test: ["CMD-SHELL", "pg_isready -U user -d mydatabase"]  # Verifica si la base de datos está lista
       interval: 10s  # Intervalo de chequeo
       timeout: 5s   # Tiempo máximo de espera
       retries: 3    # Número de intentos antes de marcar como no saludable
@@ -172,7 +172,7 @@ docker exec -it <id_contenedor> /bin/sh
 
 ### 🔚 Cierre de la Aplicación 
 
-Para detener los servicios de los contenedores **Container Seminario1-web-1** (servicio web) y **Seminario1-db-1** (servicio db), ejecuta:
+Para detener los servicios de los contenedores **Container app-web-1** (servicio web) y **app-db-1** (servicio db), ejecuta:
 
 ```bash
 docker compose stop

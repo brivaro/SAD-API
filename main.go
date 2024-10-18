@@ -21,8 +21,7 @@ func initDB() {
     // Cadena de conexión
     // Esto es una práctica insegura, poner el user y pass en el código
     // Se podrí­a hacer con variables de entorno, os.Getenv
-    host := os.Getenv("POSTGRES_HOST")
-    connStr := "host=" + host + " dbname=mydatabase password=pass sslmode=disable"
+    connStr := "host=db user=user dbname=mydatabase password=pass sslmode=disable"
 
     // Abre la conexión
     tempdb, err := sql.Open("postgres", connStr)
@@ -37,7 +36,7 @@ func initDB() {
     if err != nil {
         log.Fatal("No se pudo conectar a la base de datos:", err)
     }
-    log.Println("ConexiÃ³n exitosa a la base de datos")
+    log.Println("Conexion exitosa a la base de datos")
 
     // Crear la tabla si no existe
     createTableSQL := `CREATE TABLE IF NOT EXISTS todos (
@@ -73,12 +72,34 @@ var toDos = []toDo{
 ////////////////////////////////////
 func main() {
     ////////////////////////////////////
+    //////////////////////////////////// LOGGER
+    ////////////////////////////////////
+	// Preparar log file and router
+    // Configurar el logger para registrar en un archivo
+    file, err := os.OpenFile("/app/app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+    if err != nil {
+        log.Fatal(err)
+        
+    }
+    defer file.Close()
+
+    // Establecer el archivo como salida del logger
+    log.SetOutput(file)
+
+    // Registrar la fecha y hora de inicio de sesión
+    log.Println("======== Inicio de sesión: ", time.Now().Format("2006-01-02 15:04:05"), "========")
+
+    ////////////////////////////////////
+    //////////////////////////////////// BASE DE DATOS
+    ////////////////////////////////////
     // Inicializamos la base de datos
     initDB()
+    // Cerrar la db si se termina la ejecucion
+    defer db.Close()
 
     // Verifica si ya existen tareas en la tabla
     var count int
-    err := db.QueryRow("SELECT COUNT(*) FROM todos").Scan(&count)
+    err = db.QueryRow("SELECT COUNT(*) FROM todos").Scan(&count)
     if err != nil {
         log.Println("Error checking task count:", err)
         return
@@ -103,20 +124,6 @@ func main() {
     ////////////////////////////////////
     //////////////////////////////////// ROUTER
     ////////////////////////////////////
-    // Preparar log file and router
-    // Configurar el logger para registrar en un archivo
-    file, err := os.OpenFile("app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer file.Close()
-
-    // Establecer el archivo como salida del logger
-    log.SetOutput(file)
-
-    // Registrar la fecha y hora de inicio de sesiÃ³n
-    log.Println("======== Inicio de sesiÃ³n: ", time.Now().Format("2006-01-02 15:04:05"), "========")
-
     // Creamos un nuevo router de Gin, que serÃ¡ el manejador de las rutas y peticiones HTTP
     router := gin.Default()
 
@@ -183,30 +190,46 @@ func main() {
     })
 
     ////////////////////////////////////// GET para marcar como completada
-    // Definimos la ruta para marcar una tarea como completada ('GET' en '/complete/:id')
-    router.GET("/complete/:id", func(c *gin.Context) {
-        id := c.Param("id")
-        log.Println("Received request to complete task with ID:", id)
-
-        // Convertimos el ID de string a int
-        intID, err := strconv.Atoi(id)
-        if err != nil {
-            log.Println("Error converting ID to int:", err)
-            c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid ID"})
-            return
-        }
-
-        // Actualizamos el estado de la tarea a completada
-        _, err = db.Exec("UPDATE todos SET completed = TRUE WHERE id = $1", intID)
-        if err != nil {
-            log.Println("Error marking task as completed:", err)
-            c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Error completing task"})
-            return
-        }
-
-        log.Printf("Task with ID: %d marked as completed\n", intID)
-        c.IndentedJSON(http.StatusOK, gin.H{"message": "Task marked as completed"})
-    })
+	// Definimos la ruta para marcar una tarea como completada ('GET' en '/complete/:id')
+	router.GET("/complete/:id", func(c *gin.Context) {
+    	id := c.Param("id")
+    	log.Println("Received request to complete task with ID:", id)
+	
+    	// Convertimos el ID de string a int
+    	intID, err := strconv.Atoi(id)
+    	if err != nil {
+        	log.Println("Error converting ID to int:", err)
+        	c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid ID"})
+        	return
+    	}
+	
+    	// Comprobamos si la tarea con ese ID existe
+    	var exists bool
+    	err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM todos WHERE id = $1)", intID).Scan(&exists)
+    	if err != nil {
+        	log.Println("Error checking if task exists:", err)
+        	c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Error checking task existence"})
+        	return
+    	}
+	
+    	if !exists {
+        	log.Println("Task with ID:", intID, "not found")
+        	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Task not found"})
+        	return
+    	}
+	
+    	// Actualizamos el estado de la tarea a completada
+    	_, err = db.Exec("UPDATE todos SET completed = TRUE WHERE id = $1", intID)
+    	if err != nil {
+        	log.Println("Error marking task as completed:", err)
+        	c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Error completing task"})
+        	return
+    	}
+	
+    	log.Printf("Task with ID: %d marked as completed\n", intID)
+    	c.IndentedJSON(http.StatusOK, gin.H{"message": "Task marked as completed"})
+	})
+	
 
     //////////////////////////////////// POST
     // Definimos la ruta para añadir una nueva tarea ('POST' en '/toDos')
